@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>ドコモWi-Fi_収支シミュレーター(公開用)</title>
+<title>ドコモWi-Fi_収支シミュレーター(サンプル)</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
@@ -112,41 +112,37 @@ td small{display:block;color:var(--muted);font-size:11.5px;font-weight:400;white
 <body>
 <div class="wrap">
   <header style="display:flex;flex-direction:column;gap:8px">
-    <h1>ドコモ光 収支シミュレーター</h1>
-    <p class="sub">開通月から36か月分の月額・工事費・キャッシュバック・ポイントを1枚にまとめます。申し込んだキャンペーンで変わる金額や時期は、下の「特典・費用の一覧」で自由に変えたり、足したりできます。</p>
-    <p class="sub"><b>これは個人の試算ツールです</b>。ドコモ・GMOとくとくBBとは関係なく、広告でもありません。最初に入っている数字は2026年10月時点の公式情報と私の契約をもとにした例で、キャンペーンの金額や条件は変わります。申し込みの前に、公式ページで必ず確認してください。</p>
+    <h1>ドコモ光 収支シミュレーター(サンプル)</h1>
+    <p class="sub">開通月から36か月分の月額・工事費・キャッシュバック・ポイントを1枚にまとめた、収支シミュレーターのサンプルです。作り方はnoteの記事で紹介しています。</p>
+    <p class="sub"><b>これは作り方を見せるためのサンプルです</b>。ドコモ・GMOとくとくBBとは関係なく、広告でもありません。数字は2026年10月時点の公式情報と私の契約をもとにした例で、キャンペーンの金額や条件は変わります。申し込みの前に、公式ページで必ず確認してください。</p>
   </header>
 
-  <section class="card" aria-label="基本の条件">
+  <section class="card" aria-label="サンプルの条件">
+    <div class="card-head">
+      <h2>サンプルの条件</h2>
+      <p>変えられるのは、この4つだけです。そのほかの数字は例で固定しています。</p>
+    </div>
     <div class="controls">
       <div class="field">
-        <label for="start">開通月(例)</label>
-        <input type="month" id="start" value="2026-10">
-        <span class="hint">自分の開通月に変更してください</span>
+        <label for="plan">プラン</label>
+        <select id="plan"><option value="10">10ギガ(月額6,380円)</option><option value="1">1ギガ(月額4,400円)</option></select>
+        <span class="hint">もう一方のプランが点線で出ます</span>
       </div>
       <div class="field">
-        <label for="pen">解約金(円)</label>
-        <input type="number" id="pen" value="5500" step="100" min="0">
-        <span class="hint">契約のプランで違います(10ギガは5,500円)</span>
+        <label for="start">開通月</label>
+        <input type="month" id="start" value="2026-10">
+      </div>
+      <div class="field">
+        <label for="cb">キャッシュバック(円)</label>
+        <input type="number" id="cb" value="89000" step="1000" min="0">
+        <span class="hint">申し込む経路で金額が変わります</span>
+      </div>
+      <div class="field">
+        <label for="kj">工事費の総額(円)</label>
+        <input type="number" id="kj" value="16500" step="500" min="0">
+        <span class="hint">ドコモ公表のマンション標準額(例)</span>
       </div>
     </div>
-  </section>
-
-  <section class="card" aria-label="特典・費用の一覧">
-    <div class="card-head">
-      <h2>特典・費用の一覧</h2>
-      <p>支払う項目も受け取る項目も、ここに並べます。申し込んだキャンペーンの内容に合わせて、金額と月を書き換えてください。チェックを外すと、計算から外せます。</p>
-    </div>
-    <div class="btns" style="margin-bottom:12px">
-      <button type="button" class="btn" id="pr10">10ギガの例を読み込む</button>
-      <button type="button" class="btn" id="pr1">1ギガの例を読み込む</button>
-      <button type="button" class="btn" id="pr0">空にして一から入力</button>
-    </div>
-    <div class="items" id="items"></div>
-    <div class="btns" style="margin-top:12px">
-      <button type="button" class="btn main" id="add">項目を追加</button>
-    </div>
-    <p class="hint" style="margin-top:10px">月は、開通月を1か月目とした数字です。種別は、毎月かかるもの(月額など)、1回だけのもの(事務手数料・キャッシュバックなど)、総額を分けて払う/もらうもの(工事費など)から選びます。</p>
   </section>
 
   <section class="tiles" id="tiles" aria-label="サマリー"></section>
@@ -158,11 +154,7 @@ td small{display:block;color:var(--muted);font-size:11.5px;font-weight:400;white
     </div>
     <div class="legend" id="legend"></div>
     <svg class="chart" id="chart" viewBox="0 0 760 330" role="img" aria-label="36か月の累計収支"></svg>
-    <div class="btns" style="margin-top:12px">
-      <button type="button" class="btn" id="setc">いまの条件を比較線にする</button>
-      <button type="button" class="btn" id="clrc">比較線を消す</button>
-    </div>
-    <p class="hint" style="margin-top:8px">比較線は、条件を変えたときの差を見るためのものです。たとえば別のキャンペーンの数字を入れる前に「いまの条件を比較線にする」を押すと、点線で残ります。</p>
+    <p class="hint" style="margin-top:8px">点線は、もう一方のプランです。実線との差を見ると、どちらがいつから得か(損か)が分かります。</p>
   </section>
 
   <section class="card">
@@ -194,36 +186,12 @@ td small{display:block;color:var(--muted);font-size:11.5px;font-weight:400;white
       <h2>支払いをカードにするとどうなるか</h2>
       <p id="dsub"></p>
     </div>
-    <div class="controls" style="margin-bottom:14px">
-      <div class="field">
-        <label for="rate">還元率(%)</label>
-        <input type="number" id="rate" value="5" step="0.5" min="0">
-        <span class="hint">dカード GOLD Uのドコモ光への還元は5%</span>
-      </div>
-      <div class="field">
-        <label for="fee">年会費(円/年)</label>
-        <input type="number" id="fee" value="3300" step="100" min="0">
-        <span class="hint">GOLD Uは3,300円(条件で実質無料になる場合あり)</span>
-      </div>
-    </div>
     <div class="verdict" id="verdict"></div>
     <ul class="checks">
-      <li>ポイントの対象は、一覧で「カードのポイント対象」にチェックを入れた項目だけです。ahamoの料金や、工事費の分割分、事務手数料は対象外として入れてあります。</li>
+      <li>還元率は5%(dカード GOLD Uのドコモ光への還元)、年会費は3,300円で固定した例です。対象は月額とルーター代で、ahamoの料金や、工事費の分割分、事務手数料は対象外としています。</li>
       <li>ポイントは税抜1,000円ごとに(還元率×10)ポイントとして計算した目安です。端数の扱いは公式の条件で確認してください。</li>
       <li>支払い方法の変更はMy docomoで行います。変更はご自身で行ってください。</li>
     </ul>
-  </section>
-
-  <section class="card">
-    <div class="card-head">
-      <h2>この条件を人に送る</h2>
-      <p>入力した条件は、下のリンクの中に入っています。サーバーには送られません。個人情報は入れないでください。</p>
-    </div>
-    <div class="btns">
-      <input type="text" id="share" readonly style="flex:1;min-width:220px" aria-label="共有リンク">
-      <button type="button" class="btn main" id="copy">リンクをコピー</button>
-    </div>
-    <p class="hint" id="copymsg" style="margin-top:8px"></p>
   </section>
 
   <p class="note">確認が必要な点: 解約金が無料になる期間(契約満了月の当月・翌月・翌々月)の開始月は、My docomoで確認してください。キャッシュバックの入金は、案内メールの口座登録が前提で、契約継続と未払いなしが条件であることが多いです。最初に入っている数字は、申し込む経路によって変わる例です。</p>
@@ -255,36 +223,14 @@ td small{display:block;color:var(--muted);font-size:11.5px;font-weight:400;white
     return T;
   }
   function cp(T){return JSON.parse(JSON.stringify(T))}
-  var S={start:'2026-10',T:defs(10),C:defs(1),cOn:1,rate:5,fee:3300,pen:5500};
-
-  function pk(x){return [x.n,x.k,x.d,x.a,x.s,x.b,x.m,x.on,x.pt]}
-  function upk(a){
-    return {n:String(a[0]).slice(0,60),k:(a[1]==='o'||a[1]==='i')?a[1]:'m',d:a[2]==='r'?'r':'p',a:Math.max(0,+a[3]||0),
-            s:Math.max(1,Math.round(+a[4]||1)),b:Math.max(0,Math.round(+a[5]||0)),m:String(a[6]||'').slice(0,200),on:a[7]?1:0,pt:a[8]?1:0};
-  }
-  function enc(){
-    var o={v:1,st:S.start,t:S.T.map(pk),c:S.cOn?S.C.map(pk):0,r:S.rate,f:S.fee,p:S.pen};
-    return btoa(unescape(encodeURIComponent(JSON.stringify(o)))).split('+').join('-').split('/').join('_').split('=').join('');
-  }
-  function dec(h){
-    var s=h.split('-').join('+').split('_').join('/');while(s.length%4)s+='=';
-    return JSON.parse(decodeURIComponent(escape(atob(s))));
-  }
-  function load(){
-    try{
-      var h=location.hash;if(h.indexOf('#s=')!==0)return;
-      var o=dec(h.slice(3));
-      if(o.v!==1||!o.t)return;
-      S.start=/^[0-9]{4}-[0-9]{2}$/.test(String(o.st))?o.st:S.start;
-      S.T=o.t.slice(0,40).map(upk);
-      if(o.c){S.C=o.c.slice(0,40).map(upk);S.cOn=1}else{S.cOn=0}
-      S.rate=Math.max(0,+o.r||0);S.fee=Math.max(0,+o.f||0);S.pen=Math.max(0,+o.p||0);
-    }catch(e){}
-  }
-  function sync(){
-    var u=location.href.split('#')[0]+'#s='+enc();
-    try{history.replaceState(null,'',u)}catch(e){}
-    $('share').value=u;
+  var S={start:'2026-10',plan:10,cb:89000,kj:16500,T:[],C:[],cOn:1,rate:5,fee:3300,pen:5500};
+  function build(){
+    var o=S.plan===10?1:10;
+    S.T=defs(S.plan);S.C=defs(o);
+    S.pen=S.plan===10?5500:4180;
+    [S.T,S.C].forEach(function(L){L.forEach(function(x){if(x.k==='i')x.a=S.kj})});
+    S.T.forEach(function(x){if(x.n==='キャッシュバック')x.a=S.cb});
+    S.T.forEach(function(x){if(x.n==='Amazonギフト')x.on=0});
   }
 
   function nn(x){return Math.max(1,Math.round(x.b))}
@@ -311,36 +257,6 @@ td small{display:block;color:var(--muted);font-size:11.5px;font-weight:400;white
   function label(P,m){
     var t=(P.y*12+(P.m-1))+(m-1),y=Math.floor(t/12),mo=t%12+1;
     return y+'年'+mo+'月';
-  }
-
-  /* ---------- 一覧の編集欄 ---------- */
-  function lbl(x){
-    if(x.k==='m')return ['金額(円/月)','開始(か月目)','終了(か月目)'];
-    if(x.k==='o')return ['金額(円)','何か月目','' ];
-    return ['総額(円)','開始(か月目)','回数(回)'];
-  }
-  function opt(v,t,cur){return '<option value="'+v+'"'+(cur===v?' selected':'')+'>'+t+'</option>'}
-  function renderItems(){
-    var h='';
-    S.T.forEach(function(x,i){
-      var L=lbl(x);
-      h+='<div class="item'+(x.on?'':' off')+'" data-i="'+i+'">'+
-        '<div class="r1"><input type="checkbox" data-f="on" aria-label="計算に含める"'+(x.on?' checked':'')+'>'+
-        '<input type="text" data-f="n" value="'+esc(x.n)+'" aria-label="項目名" placeholder="項目名">'+
-        '<button type="button" class="btn del" data-del="1" aria-label="この項目を削除">削除</button></div>'+
-        '<div class="r2">'+
-          '<label class="fld"><span>種別</span><select data-f="k">'+opt('m','毎月',x.k)+opt('o','1回だけ',x.k)+opt('i','分割',x.k)+'</select></label>'+
-          '<label class="fld"><span>支払い/受け取り</span><select data-f="d">'+opt('p','支払う',x.d)+opt('r','受け取る',x.d)+'</select></label>'+
-          '<label class="fld"><span>'+L[0]+'</span><input type="number" data-f="a" value="'+x.a+'" min="0" step="100"></label>'+
-          '<label class="fld"><span>'+L[1]+'</span><input type="number" data-f="s" value="'+x.s+'" min="1" max="36" step="1"></label>'+
-          (x.k==='o'?'':'<label class="fld"><span>'+L[2]+'</span><input type="number" data-f="b" value="'+x.b+'" min="0" max="60" step="1"></label>')+
-        '</div>'+
-        '<div class="r3"><input type="text" data-f="m" value="'+esc(x.m)+'" aria-label="メモ" placeholder="メモ(任意)">'+
-        '<label class="check"><input type="checkbox" data-f="pt"'+(x.pt?' checked':'')+'>カードのポイント対象</label></div>'+
-      '</div>';
-    });
-    if(!S.T.length)h='<p class="hint">項目がありません。「項目を追加」を押すか、例を読み込んでください。</p>';
-    $('items').innerHTML=h;
   }
 
   /* ---------- 出力 ---------- */
@@ -389,15 +305,15 @@ td small{display:block;color:var(--muted);font-size:11.5px;font-weight:400;white
       s+='<text x="'+(X(A.be)-8)+'" y="'+(Y(A.cum[A.be])-10)+'" text-anchor="end" class="lab" style="fill:var(--out);font-weight:700">'+A.be+'か月目に0円超え</text>';
     }
     $('chart').innerHTML=s;
-    var lg='<span><i style="background:var(--g10)"></i>いまの条件</span>';
+    var lg='<span><i style="background:var(--g10)"></i>選んだプラン</span>';
     if(B){
-      lg+='<span><i style="background:var(--g1)"></i>比較線</span>';
-      lg+='<span>24か月時点の差(いまの条件−比較線): '+sy(A.cum[24]-B.cum[24])+'</span>';
+      lg+='<span><i style="background:var(--g1)"></i>もう一方のプラン</span>';
+      lg+='<span>24か月時点の差(選んだプラン−もう一方): '+sy(A.cum[24]-B.cum[24])+'</span>';
       var seg=[],cs=0,st=1;
       for(var k=1;k<=36;k++){var df=A.cum[k]-B.cum[k],sg=df>0?1:(df<0?-1:0);
         if(sg!==0&&sg!==cs){if(cs!==0)seg.push([cs,st,k-1]);cs=sg;st=k}}
       if(cs!==0)seg.push([cs,st,36]);
-      if(seg.length){lg+='<span>'+seg.map(function(q){return q[1]+'〜'+q[2]+'か月目は'+(q[0]>0?'いまの条件のほうが負担が大きい':'いまの条件のほうが負担が小さい')}).join('、')+'</span>'}
+      if(seg.length){lg+='<span>'+seg.map(function(q){return q[1]+'〜'+q[2]+'か月目は'+(q[0]>0?'選んだプランのほうが負担が大きい':'選んだプランのほうが負担が小さい')}).join('、')+'</span>'}
     }
     lg+='<span>横軸の M は開通月からの月数</span>';
     $('legend').innerHTML=lg;
@@ -470,58 +386,28 @@ td small{display:block;color:var(--muted);font-size:11.5px;font-weight:400;white
       pts+=Math.floor(Math.round(e/1.1)/1000)*10*S.rate;
     }
     var fee=S.fee*2,net=pts-fee;
-    $('dsub').textContent='24か月間の、ポイント対象の料金にカードのポイントがついた場合の目安です(還元率と年会費は下の欄で変えられます)。';
+    $('dsub').textContent='24か月間の、ポイント対象の料金にカードのポイントがついた場合の目安です(還元率5%・年会費3,300円で固定した例)。';
     $('verdict').innerHTML='<b>還元率'+S.rate+'%のカードで払うと、24か月でおよそ'+yen(pts)+'分のポイントです。</b>年会費'+yen(S.fee)+'×2年='+yen(fee)+'を引くと、差し引き'+sy(net)+'です。年会費が実質無料になる条件を満たせば、年会費の分は変わります。';
   }
 
   function renderOut(){
     var P=params(),A=sim(S.T),B=S.cOn?sim(S.C):null;
-    tiles(P,A);chart(P,A,B);gantt(P);bills(P);events(P);dcard();sync();
+    tiles(P,A);chart(P,A,B);gantt(P);bills(P);events(P);dcard();
   }
 
   /* ---------- イベント ---------- */
-  $('items').addEventListener('input',function(e){change(e,false)});
-  $('items').addEventListener('change',function(e){change(e,true)});
-  function change(e,isChange){
-    var t=e.target,f=t.getAttribute('data-f'),row=t.closest?t.closest('.item'):null;
-    if(!f||!row)return;
-    var x=S.T[+row.getAttribute('data-i')];if(!x)return;
-    if(f==='on'||f==='pt')x[f]=t.checked?1:0;
-    else if(f==='n'||f==='m')x[f]=t.value;
-    else if(f==='k'||f==='d')x[f]=t.value;
-    else x[f]=Math.max(0,Math.round(+t.value||0)*(f==='a'?1:1));
-    if(f==='a')x.a=Math.max(0,+t.value||0);
-    if(f==='s')x.s=Math.max(1,Math.round(+t.value||1));
-    if(f==='k'||f==='d'||(f==='on'&&isChange))renderItems();
-    renderOut();
+  function apply(){
+    S.plan=+$('plan').value;S.start=$('start').value||S.start;
+    S.cb=Math.max(0,+$('cb').value||0);S.kj=Math.max(0,+$('kj').value||0);
+    build();renderOut();
   }
-  $('items').addEventListener('click',function(e){
-    var t=e.target;
-    if(t.getAttribute&&t.getAttribute('data-del')){
-      var row=t.closest('.item');S.T.splice(+row.getAttribute('data-i'),1);renderItems();renderOut();
-    }
+  ['start','cb','kj'].forEach(function(id){
+    $(id).addEventListener('input',apply);$(id).addEventListener('change',apply);
   });
-  $('add').onclick=function(){S.T.push(it('新しい項目','m','p',0,1,12,''));renderItems();renderOut()};
-  $('pr10').onclick=function(){S.T=defs(10);renderItems();renderOut()};
-  $('pr1').onclick=function(){S.T=defs(1);renderItems();renderOut()};
-  $('pr0').onclick=function(){S.T=[];renderItems();renderOut()};
-  $('setc').onclick=function(){S.C=cp(S.T);S.cOn=1;renderOut()};
-  $('clrc').onclick=function(){S.cOn=0;renderOut()};
-  ['start'].forEach(function(id){$(id).addEventListener('input',function(){S.start=$(id).value||S.start;renderOut()})});
-  $('pen').addEventListener('input',function(){S.pen=Math.max(0,+this.value||0);renderOut()});
-  $('rate').addEventListener('input',function(){S.rate=Math.max(0,+this.value||0);renderOut()});
-  $('fee').addEventListener('input',function(){S.fee=Math.max(0,+this.value||0);renderOut()});
-  $('share').addEventListener('focus',function(){this.select()});
-  $('copy').onclick=function(){
-    var u=$('share').value,msg=$('copymsg');
-    function ok(){msg.textContent='リンクをコピーしました。'}
-    function ng(){$('share').select();msg.textContent='コピーできなかったので、枠の中のリンクを選択しました。手動でコピーしてください。'}
-    if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(u).then(ok,ng)}else{ng()}
-  };
-
-  load();
-  $('start').value=S.start;$('pen').value=S.pen;$('rate').value=S.rate;$('fee').value=S.fee;
-  renderItems();renderOut();
+  $('plan').addEventListener('change',function(){
+    $('cb').value=(+this.value===10)?89000:85000;apply();
+  });
+  build();renderOut();
 })();
 </script>
 </body>
