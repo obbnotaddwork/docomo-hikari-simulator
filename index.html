@@ -1,0 +1,433 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ドコモWi-Fi_収支タイムライン(公開用)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap">
+<style>
+/* Layout: 条件パネル → サマリー → 累計収支グラフ → ガント風タイムライン → 請求内訳 → イベント一覧 → dカード比較 */
+:root{
+  --bg:#EEF1F5; --surface:#FFFFFF; --ink:#13202D; --muted:#586878; --line:#D8DFE7; --soft:#E6EBF1;
+  --g10:#2457D6; --g10-soft:#DCE6FB; --g1:#B5700F; --g1-soft:#F6E7CE;
+  --in:#17824F; --in-soft:#D8EFE2; --out:#BF3B2A; --warn:#8A5A00; --warn-soft:#FBEFCB;
+  --font-body:"Zen Kaku Gothic New","Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic",Meiryo,sans-serif;
+  --font-num:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0E151D; --surface:#16202B; --ink:#E7EDF3; --muted:#9AAABA; --line:#2A3846; --soft:#1E2B38;
+    --g10:#7FA2FF; --g10-soft:#1F3159; --g1:#E8A94A; --g1-soft:#3D2E14;
+    --in:#4CC48A; --in-soft:#173A2B; --out:#F07A68; --warn:#E8C26A; --warn-soft:#3A3014;
+    color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0E151D; --surface:#16202B; --ink:#E7EDF3; --muted:#9AAABA; --line:#2A3846; --soft:#1E2B38;
+  --g10:#7FA2FF; --g10-soft:#1F3159; --g1:#E8A94A; --g1-soft:#3D2E14;
+  --in:#4CC48A; --in-soft:#173A2B; --out:#F07A68; --warn:#E8C26A; --warn-soft:#3A3014;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--font-body);font-size:15px;line-height:1.7;
+  padding-block:28px 56px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:960px;margin:0 auto;display:flex;flex-direction:column;gap:22px}
+h1{font-size:clamp(22px,4.6vw,30px);line-height:1.3;margin:0;font-weight:700;text-wrap:balance}
+h2{font-size:17px;margin:0 0 4px;font-weight:700;text-wrap:balance}
+p{margin:0}
+.sub{color:var(--muted);font-size:13.5px;max-width:62ch}
+.num{font-family:var(--font-num);font-variant-numeric:tabular-nums;letter-spacing:-0.01em}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:18px;min-width:0}
+.card-head{display:flex;flex-direction:column;gap:2px;margin-bottom:14px}
+.card-head p{color:var(--muted);font-size:13px}
+
+/* controls */
+.controls{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;align-items:end}
+.field{display:flex;flex-direction:column;gap:5px;min-width:0}
+.field>label,.field>span.lbl{font-size:12px;color:var(--muted);letter-spacing:.04em}
+input[type=month],input[type=number]{font:inherit;font-family:var(--font-num);font-size:14px;color:var(--ink);background:var(--bg);
+  border:1px solid var(--line);border-radius:6px;padding:7px 9px;width:100%;min-width:0}
+.seg{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.seg button{font:inherit;font-size:14px;font-weight:500;background:var(--bg);color:var(--muted);border:0;padding:7px 8px;cursor:pointer}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button[aria-pressed=true]{background:var(--ink);color:var(--surface)}
+.check{display:flex;gap:8px;align-items:flex-start;font-size:13px;color:var(--ink);cursor:pointer}
+.check input{margin-top:5px}
+:focus-visible{outline:2px solid var(--g10);outline-offset:2px}
+.hint{font-size:12px;color:var(--muted)}
+
+/* summary */
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.tile{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.tile .k{font-size:12px;color:var(--muted);letter-spacing:.04em}
+.tile .v{font-family:var(--font-num);font-size:24px;font-weight:600;line-height:1.3;font-variant-numeric:tabular-nums}
+.tile .d{font-size:12.5px;color:var(--muted)}
+.pos{color:var(--in)} .neg{color:var(--out)}
+
+/* chart */
+.legend{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:12.5px;color:var(--muted);margin-bottom:8px}
+.legend i{display:inline-block;width:18px;height:3px;border-radius:2px;vertical-align:middle;margin-right:6px}
+.chart{width:100%;height:auto;display:block}
+.chart text{font-family:var(--font-num);font-size:11px;fill:var(--muted)}
+.chart .lab{font-family:var(--font-body);font-size:11.5px;fill:var(--ink)}
+
+/* gantt */
+.scroll{overflow-x:auto}
+.gantt{min-width:720px;display:grid;grid-template-columns:128px repeat(36,1fr);row-gap:8px;align-items:center;font-size:12.5px}
+.gantt .rl{color:var(--muted);padding-right:8px;line-height:1.35}
+.gantt .mh{font-family:var(--font-num);font-size:10.5px;color:var(--muted);text-align:center;border-left:1px solid var(--soft);padding-bottom:2px}
+.bar{height:26px;border-radius:5px;padding:0 8px;display:flex;align-items:center;font-size:11.5px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.bar.b-a{background:var(--g10-soft);color:var(--g10)}
+.bar.b-b{background:var(--g10);color:var(--surface)}
+.bar.b-out{background:var(--soft);color:var(--ink)}
+.bar.b-in{background:var(--in-soft);color:var(--in)}
+.bar.b-warn{background:var(--warn-soft);color:var(--warn)}
+.pin{height:26px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--surface);background:var(--in);border-radius:5px;font-family:var(--font-num)}
+.pin.out{background:var(--g1)}
+
+/* table */
+table{border-collapse:collapse;width:100%;font-size:13.5px}
+th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:right;vertical-align:top}
+th:first-child,td:first-child{text-align:left}
+th{font-weight:500;color:var(--muted);font-size:12px;letter-spacing:.03em;white-space:nowrap}
+td.n{font-family:var(--font-num);font-variant-numeric:tabular-nums;white-space:nowrap}
+tr.total td{font-weight:700;border-top:2px solid var(--ink);border-bottom:0}
+td small{display:block;color:var(--muted);font-size:11.5px;font-weight:400;white-space:normal;text-align:inherit;line-height:1.5}
+
+/* events */
+.events{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.ev{display:grid;grid-template-columns:96px 1fr auto;gap:4px 14px;padding:12px 0;border-top:1px solid var(--line);align-items:baseline}
+.ev:first-child{border-top:0}
+.ev .when{font-family:var(--font-num);font-size:12.5px;color:var(--muted);line-height:1.5}
+.ev .when b{display:block;color:var(--ink);font-size:14px;font-weight:600}
+.ev .what{min-width:0}
+.ev .what strong{font-weight:700}
+.ev .what span{display:block;color:var(--muted);font-size:12.5px;line-height:1.55}
+.ev .amt{font-family:var(--font-num);font-size:14px;font-weight:600;text-align:right;white-space:nowrap}
+.tag{display:inline-block;font-size:11px;font-weight:700;padding:0 6px;border-radius:4px;margin-left:6px;vertical-align:1px;background:var(--warn-soft);color:var(--warn);white-space:nowrap}
+@media (max-width:520px){
+  .ev{grid-template-columns:84px 1fr}
+  .ev .amt{grid-column:2;text-align:left}
+}
+
+/* verdict */
+.verdict{border-left:4px solid var(--g10);background:var(--g10-soft);border-radius:6px;padding:12px 14px;font-size:14px;margin-bottom:14px}
+.verdict b{font-weight:700}
+.checks{margin:0;padding-left:1.1em;color:var(--ink);font-size:13.5px;display:flex;flex-direction:column;gap:6px}
+.note{font-size:12.5px;color:var(--muted)}
+</style>
+
+<div class="wrap">
+  <header style="display:flex;flex-direction:column;gap:8px">
+    <h1>ドコモ光×GMOとくとくBB 収支タイムライン</h1>
+    <p class="sub">マンション・タイプA。開通月から36か月分の月額、工事費、キャッシュバック、dポイントを1枚にまとめています。数字は条件欄で変えられます。</p>
+    <p class="sub"><b>これは個人の試算ツールです</b>。ドコモ・GMOとくとくBBとは関係なく、広告でもありません。数字は2026年10月時点の公式情報と私の契約をもとにした例で、キャンペーンの金額や条件は変わります。申し込みの前に、公式ページで必ず確認してください。</p>
+  </header>
+
+  <section class="card" aria-label="条件">
+    <div class="controls">
+      <div class="field">
+        <label for="start">開通月(例)</label>
+        <input type="month" id="start" value="2026-10">
+        <span class="hint">自分の開通月に変更してください</span>
+      </div>
+      <div class="field">
+        <span class="lbl" id="planlbl">プラン</span>
+        <div class="seg" role="group" aria-labelledby="planlbl">
+          <button type="button" id="p10" aria-pressed="true">10ギガ</button>
+          <button type="button" id="p1" aria-pressed="false">1ギガ</button>
+        </div>
+        <span class="hint" id="planhint"></span>
+      </div>
+      <div class="field">
+        <label for="cb">キャッシュバック(円・例)</label>
+        <input type="number" id="cb" value="89000" step="1000" min="0">
+        <span class="hint" id="cbhint"></span>
+      </div>
+      <div class="field">
+        <label for="kouji">工事費の総額(円)</label>
+        <input type="number" id="kouji" value="16500" step="100" min="0">
+        <span class="hint">ドコモ公表のマンション標準額。実際の額は工事日程メールか請求で確認</span>
+      </div>
+      <div class="field">
+        <label class="check" for="gift"><input type="checkbox" id="gift"><span>Amazonギフト10,000円を収支に含める<br><span class="hint">dカード GOLD Uを発行した場合のみ</span></span></label>
+      </div>
+    </div>
+  </section>
+
+  <section class="tiles" id="tiles" aria-label="サマリー"></section>
+
+  <section class="card">
+    <div class="card-head">
+      <h2>累計の収支</h2>
+      <p>支払った合計からキャッシュバックなどを引いた累計。0円より下が「まだ得している」状態、0円を超えると持ち出しに戻ります。</p>
+    </div>
+    <div class="legend" id="legend"></div>
+    <svg class="chart" id="chart" viewBox="0 0 760 330" role="img" aria-label="36か月の累計収支。10ギガと1ギガの比較"></svg>
+  </section>
+
+  <section class="card">
+    <div class="card-head">
+      <h2>いつ何が動くか</h2>
+      <p>数字は開通月を1か月目とした月数です。</p>
+    </div>
+    <div class="scroll"><div class="gantt" id="gantt"></div></div>
+  </section>
+
+  <section class="card">
+    <div class="card-head">
+      <h2>毎月の請求の中身</h2>
+      <p id="billsub"></p>
+    </div>
+    <div class="scroll"><table id="bills"></table></div>
+  </section>
+
+  <section class="card">
+    <div class="card-head">
+      <h2>日付つきの予定</h2>
+      <p>金額の緑は入ってくるお金、赤は出ていくお金です。</p>
+    </div>
+    <ol class="events" id="events"></ol>
+  </section>
+
+  <section class="card">
+    <div class="card-head">
+      <h2>支払いをdカード GOLD Uにすると得か</h2>
+      <p id="dsub"></p>
+    </div>
+    <div class="verdict" id="verdict"></div>
+    <div class="scroll"><table id="dcard"></table></div>
+    <ul class="checks" style="margin-top:14px">
+      <li>GOLD Uのドコモ光への還元は5%です(税抜1,000円ごとに50ポイント、dカード公式)。10%はdカード GOLDの数字で、GOLD Uには当てはまりません。</li>
+      <li>ahamoの料金は、ポイントの対象外です。ドコモ光の料金だけが対象です。工事費の分割分と事務手数料は対象外として計算しています。</li>
+      <li>年会費が実質無料になる条件は、22歳以下、年間の利用額30万円以上、入会月の前月末にahamoなどを契約(2年目の年会費確定時のみ、電話番号の料金をdカード系で支払う設定も必要)のいずれかです。</li>
+      <li>満30歳以降の最初の更新時に、審査のうえ年会費11,000円のdカード GOLDへ自動で切り替わると公式に書かれています。切り替わる前に内容を確認してください。</li>
+      <li>支払い方法の変更はMy docomoで行います。変更はご自身で行ってください。</li>
+    </ul>
+  </section>
+
+  <p class="note">確認が必要な点: 解約金が無料になる期間(契約満了月の当月・翌月・翌々月)の開始月は、My docomoで確認してください。キャッシュバックの入金は、案内メールの口座登録が前提で、契約継続と未払いなしが条件です。1ギガの85,000円は紹介ページの記載で、どちらも例の金額で、申し込む経路によって変わります。</p>
+</div>
+
+<script>
+(function(){
+  var S={plan:10,cb:{10:89000,1:85000}};
+  var $=function(id){return document.getElementById(id)};
+  var yen=function(n){return Math.round(n).toLocaleString('ja-JP')+'円'};
+  var sy=function(n){return (n<0?'−':'+')+Math.abs(Math.round(n)).toLocaleString('ja-JP')+'円'};
+  var K=function(n){var a=Math.abs(n)/1000;return (n<0?'−':(n>0?'+':''))+a+'k'};
+
+  function params(){
+    var v=$('start').value||'2026-10';
+    var p=v.split('-');
+    return {y:+p[0],m:+p[1],kouji:Math.max(0,+$('kouji').value||0),gift:$('gift').checked};
+  }
+  function label(P,m,short){ // month index m (1 = 開通月)
+    var t=(P.y*12+(P.m-1))+(m-1);
+    var y=Math.floor(t/12),mo=t%12+1;
+    return short? (y%100)+'/'+mo : y+'年'+mo+'月';
+  }
+  function plan(pl){
+    return pl===10 ? {name:'10ギガ',base:function(m){return m<=6?500:6380},router:190,cb:S.cb[10]}
+                   : {name:'1ギガ',base:function(){return 4400},router:0,cb:S.cb[1]};
+  }
+  function sim(pl,P){
+    var d=plan(pl),inst=P.kouji/24,rows=[],cum=0,out=[{m:0,cum:0}];
+    for(var m=1;m<=36;m++){
+      var base=d.base(m),rt=d.router,fee=m===1?4950:0,ins=m<=24?inst:0;
+      var bill=base+rt+fee+ins;
+      var pts=(m>=7&&m<=30)?inst:0;
+      var cb=m===5?d.cb:0, gift=(P.gift&&m===2)?10000:0;
+      var net=bill-pts-cb-gift;
+      cum+=net;
+      rows.push({m:m,base:base,rt:rt,fee:fee,ins:ins,bill:bill,pts:pts,cb:cb,gift:gift,net:net,cum:cum});
+      out.push({m:m,cum:cum});
+    }
+    var minI=0;for(var i=0;i<out.length;i++){if(out[i].cum<out[minI].cum)minI=i}
+    var be=null;for(var j=minI+1;j<out.length;j++){if(out[j].cum>=0){be=j;break}}
+    return {rows:rows,cum:out,minI:minI,be:be,d:d};
+  }
+
+  function tiles(P,A){
+    var r24=A.cum[24].cum, avg=r24/24, r36=A.cum[36].cum;
+    var beTxt=A.be?A.be+'か月目':'36か月以内はなし';
+    var beSub=A.be?label(P,A.be)+'ごろ。この月までは受け取ったお金の範囲内':'36か月でも累計はマイナス';
+    var h='';
+    h+='<div class="tile"><span class="k">キャッシュバック</span><span class="v pos">'+yen(A.d.cb)+'</span><span class="d">5か月目の末(約'+label(P,5)+'末)に入金予定</span></div>';
+    h+='<div class="tile"><span class="k">24か月の実質月額</span><span class="v">'+yen(avg)+'</span><span class="d">24か月の実質負担 '+yen(r24)+' を24で割った額</span></div>';
+    h+='<div class="tile"><span class="k">累計が0円を超える時期</span><span class="v">'+beTxt+'</span><span class="d">'+beSub+'</span></div>';
+    h+='<div class="tile"><span class="k">36か月の実質負担</span><span class="v">'+yen(r36)+'</span><span class="d">月平均 '+yen(r36/36)+'。支払い合計からCBとポイントを引いた額</span></div>';
+    $('tiles').innerHTML=h;
+  }
+
+  function chart(P,A10,A1){
+    var W=760,H=330,L=54,R=14,T=16,B=36,iw=W-L-R,ih=H-T-B;
+    var all=A10.cum.concat(A1.cum).map(function(o){return o.cum});
+    var lo=Math.min.apply(null,all),hi=Math.max.apply(null,all);
+    var step=20000; lo=Math.floor(Math.min(lo,0)/step)*step; hi=Math.ceil(Math.max(hi,0)/step)*step;
+    var X=function(m){return L+iw*m/36}, Y=function(v){return T+ih*(1-(v-lo)/(hi-lo))};
+    var s='';
+    // renewal band 25-27
+    s+='<rect x="'+X(24)+'" y="'+T+'" width="'+(X(27)-X(24))+'" height="'+ih+'" fill="var(--warn-soft)"/>';
+    s+='<text x="'+(X(25.5))+'" y="'+(T+12)+'" text-anchor="middle" class="lab" style="fill:var(--warn);font-size:10.5px">更新期間</text>';
+    for(var v=lo;v<=hi;v+=step){
+      s+='<line x1="'+L+'" x2="'+(W-R)+'" y1="'+Y(v)+'" y2="'+Y(v)+'" stroke="var(--line)" stroke-width="'+(v===0?1.6:0.7)+'"'+(v===0?'':' stroke-dasharray="3 4"')+'/>';
+      s+='<text x="'+(L-7)+'" y="'+(Y(v)+4)+'" text-anchor="end">'+K(v)+'</text>';
+    }
+    for(var m=0;m<=36;m+=6){
+      s+='<text x="'+X(m)+'" y="'+(H-14)+'" text-anchor="middle">'+(m===0?'0':m+'M')+'</text>';
+    }
+    s+='<text x="'+L+'" y="'+(H-1)+'" style="font-family:var(--font-body)">'+label(P,1)+' 開通</text>';
+    function path(A){return A.cum.map(function(o,i){return (i?'L':'M')+X(o.m).toFixed(1)+' '+Y(o.cum).toFixed(1)}).join(' ')}
+    var sel=S.plan===10?A10:A1, oth=S.plan===10?A1:A10;
+    var cSel=S.plan===10?'var(--g10)':'var(--g1)', cOth=S.plan===10?'var(--g1)':'var(--g10)';
+    s+='<path d="'+path(oth)+'" fill="none" stroke="'+cOth+'" stroke-width="1.8" stroke-dasharray="5 4" opacity=".75"/>';
+    s+='<path d="'+path(sel)+'" fill="none" stroke="'+cSel+'" stroke-width="3" stroke-linejoin="round"/>';
+    // markers on selected
+    var cbPt=sel.cum[5];
+    s+='<circle cx="'+X(5)+'" cy="'+Y(cbPt.cum)+'" r="5" fill="var(--in)" stroke="var(--surface)" stroke-width="2"/>';
+    s+='<text x="'+(X(5)+9)+'" y="'+(Y(cbPt.cum)+16)+'" class="lab" style="fill:var(--in);font-weight:700">CB入金</text>';
+    if(sel.be){
+      var bp=sel.cum[sel.be];
+      s+='<circle cx="'+X(sel.be)+'" cy="'+Y(bp.cum)+'" r="5" fill="var(--out)" stroke="var(--surface)" stroke-width="2"/>';
+      s+='<text x="'+(X(sel.be)-8)+'" y="'+(Y(bp.cum)-10)+'" text-anchor="end" class="lab" style="fill:var(--out);font-weight:700">'+sel.be+'か月目に0円超え</text>';
+    }
+    var mp=sel.cum[sel.minI];
+    if(sel.minI!==5){
+      s+='<circle cx="'+X(sel.minI)+'" cy="'+Y(mp.cum)+'" r="4" fill="'+cSel+'" stroke="var(--surface)" stroke-width="2"/>';
+    }
+    $('chart').innerHTML=s;
+    $('legend').innerHTML='<span><i style="background:var(--g10)"></i>10ギガ</span><span><i style="background:var(--g1)"></i>1ギガ</span><span>太線は選択中のプラン、点線は比較用</span><span>横軸の M は開通月からの月数</span>';
+  }
+
+  function gantt(P,A){
+    var is10=S.plan===10, g='';
+    g+='<div></div>';
+    for(var m=1;m<=36;m++){g+='<div class="mh">'+((m===1||m%6===0)?m:'')+'</div>'}
+    function row(lbl,from,to,cls,txt){
+      g+='<div class="rl">'+lbl+'</div><div class="bar '+cls+'" style="grid-column:'+(from+1)+' / '+(to+2)+'">'+txt+'</div>';
+    }
+    function rowPad(lbl,segs){ // segs: [from,to,cls,txt]
+      g+='<div class="rl">'+lbl+'</div>';
+      segs.forEach(function(s){g+='<div class="bar '+s[2]+'" style="grid-column:'+(s[0]+1)+' / '+(s[1]+2)+';grid-row:auto">'+s[3]+'</div>'});
+    }
+    // each logical row: use explicit grid-row to place segments on same line
+    var r=2, html='';
+    function seg(lbl,items){
+      html+='<div class="rl" style="grid-row:'+r+';grid-column:1">'+lbl+'</div>';
+      items.forEach(function(s){
+        html+='<div class="'+(s[2]==='pin'||s[2]==='pin out'?'pin'+(s[2]==='pin out'?' out':''):'bar '+s[2])+'" style="grid-row:'+r+';grid-column:'+(s[0]+1)+' / '+(s[1]+2)+'">'+s[3]+'</div>';
+      });
+      r++;
+    }
+    var head=g; // month header row 1
+    seg('月額料金',is10?[[1,6,'b-a','500円+190円'],[7,36,'b-b','6,380円+ルーター190円 = 6,570円/月']]:[[1,36,'b-b','4,400円(ルーターなし)']]);
+    seg('工事費の分割請求',[[1,24,'b-out',yen(P.kouji/24)+'/月 × 24回']]);
+    seg('工事費相当のdポイント',[[7,30,'b-in',yen(P.kouji/24)+'/月分 × 24回']]);
+    seg('キャッシュバック',[[4,9,'b-in','4M案内メール → 5M末に入金']]);
+    seg('2年契約の更新',[[25,27,'b-warn','更新期間']]);
+    $('gantt').innerHTML=head+html;
+  }
+
+  function bills(P,A){
+    var rows=A.rows, is10=S.plan===10;
+    function seg(a,b){ // average over months a..b
+      var o={base:0,rt:0,ins:0,pts:0,n:b-a+1};
+      for(var m=a;m<=b;m++){var x=rows[m-1];o.base+=x.base;o.rt+=x.rt;o.ins+=x.ins;o.pts+=x.pts}
+      Object.keys(o).forEach(function(k){if(k!=='n')o[k]/=o.n});
+      return o;
+    }
+    var cols=is10?[[1,6,'1〜6か月目'],[7,24,'7〜24か月目'],[25,30,'25〜30か月目'],[31,36,'31か月目〜']]:[[1,6,'1〜6か月目'],[7,24,'7〜24か月目'],[25,30,'25〜30か月目'],[31,36,'31か月目〜']];
+    if(!is10){cols=[[1,6,'1〜6か月目'],[7,24,'7〜24か月目'],[25,36,'25か月目〜']]}
+    var segs=cols.map(function(c){return {s:seg(c[0],c[1]),t:c[2]}});
+    var h='<thead><tr><th></th>'+segs.map(function(x){return '<th>'+x.t+'</th>'}).join('')+'</tr></thead><tbody>';
+    function line(name,f,sign){h+='<tr><td>'+name+'</td>'+segs.map(function(x){var v=f(x.s);return '<td class="n">'+(v?(sign||'')+yen(v):'—')+'</td>'}).join('')+'</tr>'}
+    line('月額料金',function(s){return s.base});
+    h+='<tr><td>プロバイダ料金(GMOとくとくBB)<small>月額料金に含まれる。別請求なし</small></td>'+segs.map(function(){return '<td class="n">0円</td>'}).join('')+'</tr>';
+    line(is10?'ルーターレンタル(10ギガ用)':'ルーターレンタル',function(s){return s.rt});
+    line('工事費の分割請求',function(s){return s.ins});
+    line('工事費相当のdポイント',function(s){return s.pts},'−');
+    h+='<tr class="total"><td>実質の月額</td>'+segs.map(function(x){return '<td class="n">'+yen(x.s.base+x.s.rt+x.s.ins-x.s.pts)+'</td>'}).join('')+'</tr></tbody>';
+    $('bills').innerHTML=h;
+    $('billsub').textContent='月額は税込。事務手数料4,950円は1か月目のみ別にかかります。金額は期間ごとの平均で、'+(is10?'10ギガ':'1ギガ')+'の場合です。';
+  }
+
+  function events(P,A){
+    var is10=S.plan===10, inst=P.kouji/24, E=[];
+    function ev(m,title,sub,amt,cls,tag){E.push({m:m,t:title,s:sub,a:amt,c:cls,tag:tag})}
+    ev(1,'開通・利用開始','月額が始まります。事務手数料4,950円と、工事費の1回目の分割(約'+yen(inst)+')がこの月の請求に入ります。',-(4950+inst),'neg');
+    ev(2,'Amazonギフト 10,000円のメールが届く(カード発行の翌月末)','GMOとくとくBB限定の特典です。dカードの発行が確認できた翌月末に、特典エントリーで入力したメールアドレスへギフトコードが届きます。', P.gift?10000:'', P.gift?'pos':'', '到着待ち');
+    ev(4,'GMOからキャッシュバックの案内メール','@gmobb.jp 宛(GMO基本メール)。メール内の手順で口座を登録します。','', '');
+    ev(5,'キャッシュバック入金(月末)','口座登録の翌月末に入金。契約継続と未払いなしが条件です。',A.d.cb,'pos');
+    if(is10)ev(7,'月額が通常料金に切り替わり','500円 → 6,380円(ルーター190円は別)。同じ月から工事費相当のdポイント付与も始まります。',-(6380-500),'neg');
+    else ev(7,'工事費相当のdポイント付与が始まる','毎月約'+yen(inst)+'分。期間と用途に限定があり、有効期限は約6か月です。',inst,'pos');
+    ev(24,'工事費の分割請求が終わる','この月の請求まで。以降の実質月額は下がります。','', '');
+    ev(25,'2年契約の更新期間(開始月はMy docomoで要確認)','ドコモ公式では契約満了月の当月・翌月・翌々月の3か月は解約金がかかりません。満了月はMy docomoの「ご契約内容確認・変更」で確認できます。目安は24〜27か月目です。この期間に何もしなければ自動で2年更新になり、次の無料期間は2年後です。解約金は'+(is10?'5,500円(10ギガ)':'4,180円(マンション1ギガ)')+'。更新期間に解約しても、工事費相当のdポイントは付与が止まるので、残りの分(例で約'+yen(inst*6)+')は受け取れない可能性があります。','', '', true);
+    ev(30,'工事費相当のdポイント付与が終わる','途中で解約すると、工事費の残りが一括請求され、ポイント付与も止まります。','', '');
+    var h='';
+    E.forEach(function(e){
+      var amt=e.a===''?'':sy(e.a);
+      h+='<li class="ev"><div class="when"><b>'+label(P,e.m)+'</b>'+e.m+'か月目</div>'+
+         '<div class="what"><strong>'+e.t+'</strong>'+(e.tag?'<span class="tag">'+(e.tag===true?'要確認':e.tag)+'</span>':'')+'<span>'+e.s+'</span></div>'+
+         '<div class="amt '+e.c+'">'+amt+'</div></li>';
+    });
+    $('events').innerHTML=h;
+  }
+
+  function dcard(P,A){
+    var d=A.d, is10=S.plan===10;
+    function pts(rate){ // rate 10 or 1 over 24 months, ドコモ光料金のみ
+      var t=0;
+      for(var m=1;m<=24;m++){
+        var c=d.base(m)+d.router;
+        if(rate===10){t+=Math.floor(Math.round(c/1.1)/1000)*100}
+        else if(rate===5){t+=Math.floor(Math.round(c/1.1)/1000)*50}
+        else {t+=Math.floor(c/100)}
+      }
+      return t;
+    }
+    var p10=pts(10), p5=pts(5), p1=pts(1);
+    var cards=[
+      {n:'口座振替・ほかのカード',feeTot:0,pt:0,gift:false,note:'ポイントなし'},
+      {n:'dカード(通常)',feeTot:0,pt:p1,gift:false,note:'1%還元。年会費なし'},
+      {n:'dカード GOLD U・年会費が実質無料にならない場合',feeTot:6600,pt:p5,gift:true,note:'5%還元。年会費3,300円×2年'},
+      {n:'dカード GOLD U・2年目に年会費が実質無料になる場合',feeTot:3300,pt:p5,gift:true,note:'5%還元。ahamo契約などの条件を満たすと、前年分の3,300円が2年目の請求から引かれます'},
+      {n:'dカード GOLD',feeTot:22000,pt:p10,gift:true,note:'10%還元。年会費11,000円/年。参考として表示'}
+    ];
+    var h='<thead><tr><th>支払い方法</th><th>2年のポイント</th><th>2年の年会費</th><th>2年の差し引き</th><th>ギフト込み</th></tr></thead><tbody>';
+    cards.forEach(function(c){
+      var net=c.pt-c.feeTot, withG=c.gift?net+10000:null;
+      h+='<tr><td>'+c.n+'<small>'+c.note+'</small></td>'+
+         '<td class="n">'+yen(c.pt)+'</td><td class="n">'+(c.feeTot?'−'+yen(c.feeTot):'—')+'</td>'+
+         '<td class="n '+(net>=0?'pos':'neg')+'">'+sy(net)+'</td>'+
+         '<td class="n '+(withG===null?'':(withG>=0?'pos':'neg'))+'">'+(withG===null?'—':sy(withG))+'</td></tr>';
+    });
+    h+='</tbody>';
+    $('dcard').innerHTML=h;
+    $('dsub').textContent=(is10?'10ギガ':'1ギガ')+'の場合の、ドコモ光の料金24か月分(ahamoは含まず)のポイントと年会費を比べています。';
+    $('verdict').innerHTML='<b>dカード GOLD Uで支払うと、ドコモ光の料金に5%のポイントが付きます。</b>'+(is10?'10ギガだと7か月目以降で毎月約250ポイント':'1ギガだと毎月約200ポイント')+'、2年で約'+yen(p5)+'分です。年会費3,300円が実質無料になる条件(ahamoの契約など)を満たせば、2年で'+sy(p5-3300)+'、満たせない場合は'+sy(p5-6600)+'です。';
+  }
+
+  function render(){
+    var P=params(), A10=sim(10,P), A1=sim(1,P), A=S.plan===10?A10:A1;
+    $('p10').setAttribute('aria-pressed',S.plan===10);
+    $('p1').setAttribute('aria-pressed',S.plan===1);
+    $('cb').value=S.cb[S.plan];
+    $('cbhint').textContent=S.plan===10?'経路で金額が違います。例として89,000円':'経路で金額が違います。例として85,000円';
+    $('planhint').textContent=S.plan===10?'月額 6,380円(最初の6か月は500円)':'月額 4,400円';
+    tiles(P,A); chart(P,A10,A1); gantt(P,A); bills(P,A); events(P,A); dcard(P,A);
+  }
+  $('p10').onclick=function(){S.plan=10;render()};
+  $('p1').onclick=function(){S.plan=1;render()};
+  ['start','kouji','gift'].forEach(function(id){$(id).addEventListener('input',render);$(id).addEventListener('change',render)});
+  $('cb').addEventListener('input',function(){S.cb[S.plan]=Math.max(0,+this.value||0);
+    var P=params(),A10=sim(10,P),A1=sim(1,P),A=S.plan===10?A10:A1;
+    tiles(P,A);chart(P,A10,A1);gantt(P,A);bills(P,A);events(P,A);dcard(P,A)});
+  render();
+})();
+</script>
+
+
+</html>
